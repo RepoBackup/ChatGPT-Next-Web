@@ -3,9 +3,7 @@ name: VercelPreviewDeployment
 on:
   pull_request_target:
     types:
-      - opened
-      - synchronize
-  workflow_dispatch:
+      - review_requested
 
 env:
   VERCEL_TEAM: ${{ secrets.VERCEL_TEAM }}
@@ -25,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: ${{ github.event.inputs.branchName }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Extract branch name
         shell: bash
@@ -49,7 +47,7 @@ jobs:
         run: npm install --global vercel@latest
 
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: cache-npm
         with:
           path: ~/.npm
@@ -70,7 +68,6 @@ jobs:
           vercel deploy --prebuilt --archive=tgz --token=${VERCEL_TOKEN} --meta base_hash=${{ env.META_TAG }}
 
           DEFAULT_URL=$(vercel ls --token=${VERCEL_TOKEN} --meta base_hash=${{ env.META_TAG }})
-          echo "preview URL:${DEFAULT_URL} , alias URL:${{ steps.set_env.outputs.VERCEL_ALIAS_DOMAIN }}"
           ALIAS_URL=$(vercel alias set ${DEFAULT_URL} ${{ steps.set_env.outputs.VERCEL_ALIAS_DOMAIN }} --token=${VERCEL_TOKEN} --scope ${VERCEL_TEAM}| awk '{print $3}')
 
           echo "New preview URL: ${DEFAULT_URL}"
